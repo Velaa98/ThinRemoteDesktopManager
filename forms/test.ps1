@@ -1,6 +1,12 @@
-$DropDownArray_Servers = @("server1", "server2", "server3")
-$DropDownArray_Users = @("user1", "user2", "user3")
+#$DropDownArray_Servers = @("server1", "server2", "server3")
 
+## obtener los objetos de 1Password con la etiqueta "TRDM":
+$items = .\op.exe list items --tags TRDM| ConvertFrom-Json
+
+## Guardar los servidores en una lista:
+$DropDownArray_Servers = $items.overview.title
+
+#$DropDownArray_Users = @("user1", "user2", "user3")
 
 # Form building
 
@@ -15,22 +21,20 @@ $Form.StartPosition = "CenterScreen"
 
 
 
+## Etiqueta para identificar la lista desplegable con los servidores
+$dropDownLabel_Servers = New-Object System.Windows.Forms.Label
+$dropDownLabel_Servers.Location = New-Object System.Drawing.Size(10,10)
+$dropDownLabel_Servers.Size = New-Object System.Drawing.Size(100,40)
+$dropDownLabel_Servers.Text = "Servidor: "
+$Form.Controls.Add($dropDownLabel_Servers)
 
-$DropDownFrom = New-Object System.Windows.Forms.ComboBox
-$DropDownFrom.Location = New-Object System.Drawing.Size(140,10)
-$DropDownFrom.Size = New-Object System.Drawing.Size(130,30)
 
-ForEach ($Item in $DropDownArray_Servers) {
-$DropDownFrom.Items.Add($Item) | Out-Null
-}
-
-$Form.Controls.Add($DropDownFrom)
-
-$DropDownFromLabel = New-Object System.Windows.Forms.Label
-$DropDownFromLabel.Location = New-Object System.Drawing.Size(10,10)
-$DropDownFromLabel.Size = New-Object System.Drawing.Size(100,40)
-$DropDownFromLabel.Text = "Servidor: "
-$Form.Controls.Add($DropDownFromLabel)
+## Lista desplegable con los servidores:
+$dropDown_Servers = New-Object System.Windows.Forms.ComboBox
+$dropDown_Servers.Location = New-Object System.Drawing.Size(140,10)
+$dropDown_Servers.Size = New-Object System.Drawing.Size(130,30)
+ForEach ($Item in $DropDownArray_Servers) { $dropDown_Servers.Items.Add($Item) | Out-Null }
+$Form.Controls.Add($dropDown_Servers)
 
 
 
@@ -57,11 +61,11 @@ $label.Size = New-Object System.Drawing.Size(100,20)
 $label.Text = 'password'
 $form.Controls.Add($label)
 
-$textBox = New-Object System.Windows.Forms.MaskedTextBox
-$textBox.PasswordChar = '*'
-$textBox.Location = New-Object System.Drawing.Point(140,90)
-$textBox.Size = New-Object System.Drawing.Size(130,20)
-$form.Controls.Add($textBox)
+$textBox_Password = New-Object System.Windows.Forms.TextBox
+$textBox_Password.PasswordChar = '*'
+$textBox_Password.Location = New-Object System.Drawing.Point(140,90)
+$textBox_Password.Size = New-Object System.Drawing.Size(130,20)
+$form.Controls.Add($textBox_Password)
 
 
 $OKButton = new-object System.Windows.Forms.Button
@@ -90,12 +94,26 @@ $Form.Add_Shown({$Form.Activate()})
 
 $result = $Form.ShowDialog()
 
-$server= $Form.Controls[0].Text
+$server= $dropDown_Servers.Text
 
-$user= $Form.Controls[2].Text
+$user= $DropDownTo.Text
 
-$password = $textBox.Text
+$password = $textBox_Password.Text
 
-#cmdkey /generic:"$server" /user:"$user" /pass:"$password"
+$ip = .\op.exe get item $server --fields IP
 
-#mstsc /v:$server 
+## Lista por pantalla las credenciales existentes para la ip destino
+cmdkey /list:$ip
+
+## Crea las credenciales
+cmdkey /generic:"$ip" /user:"$user" /pass:"$password"
+
+## inicia el escritorio remoto
+mstsc /v:$ip
+
+## Lista por pantalla las credenciales existentes para la ip destino
+cmdkey /list:$ip
+## Elimina las credenciales
+cmdkey /delete:$ip 
+## Lista por pantalla las credenciales existentes para la ip destino
+cmdkey /list:$ip
